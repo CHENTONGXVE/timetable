@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#eef2fb">
+<title>本周课表 · 第5周</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:#eef2fb;color:#1b2233;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body{padding-bottom:env(safe-area-inset-bottom)}
+
+/* ============ 顶部切换按钮 ============ */
+.wrap{height:100dvh;height:100vh;display:flex;flex-direction:column}
+.segbar{flex:0 0 auto;padding:calc(env(safe-area-inset-top) + 10px) 12px 4px;display:flex;justify-content:center}
+.seg{display:flex;gap:4px;background:rgba(255,255,255,.75);padding:4px;border-radius:999px;
+  box-shadow:0 3px 10px rgba(70,90,180,.12)}
+.seg button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:700;color:#8b93a7;
+  padding:8px 20px;border-radius:999px;cursor:pointer;transition:color .2s,background .25s,box-shadow .25s}
+.seg button.on{color:#fff;background:linear-gradient(135deg,#5c6bfa,#7048e8);box-shadow:0 3px 10px rgba(92,107,250,.4)}
+.view{flex:1 1 auto;min-height:0;display:none}
+.view.on{display:block}
+
+/* ============ 第 1 部分：本周总览（一屏看全） ============ */
+.screen1{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding:4px 8px 6px;gap:6px}
+.hd{display:flex;align-items:flex-end;justify-content:space-between;padding:6px 6px 2px}
+.hd h1{font-size:19px;font-weight:800;letter-spacing:.5px;
+  background:linear-gradient(90deg,#3b5bdb,#7048e8 55%,#e64980);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hd .sub{font-size:10.5px;color:#8b93a7;margin-top:3px}
+.hd .chip{font-size:10.5px;font-weight:700;color:#5c6bfa;background:#fff;padding:5px 10px;border-radius:999px;
+  box-shadow:0 2px 8px rgba(70,90,180,.13)}
+
+.board{display:grid;grid-template-columns:44px repeat(7,1fr);grid-template-rows:26px repeat(5,1fr);
+  gap:3px;min-height:0}
+.th{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;
+  font-size:11px;font-weight:700;color:#7b8399;background:rgba(255,255,255,.55)}
+.th small{font-size:8.5px;font-weight:600;color:#a6adc0;margin-top:1px}
+.th.today{color:#fff;background:linear-gradient(135deg,#5c6bfa,#7048e8);box-shadow:0 3px 9px rgba(92,107,250,.35)}
+.th.today small{color:rgba(255,255,255,.85)}
+.th.wk{color:#b3b9c9}
+
+.tcol{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  border-radius:9px;background:rgba(255,255,255,.45)}
+.tcol b{font-size:10px;font-weight:800;color:#5b6478}
+.tcol span{font-size:7.5px;color:#9aa2b5;transform:scale(.94)}
+
+.cell{border-radius:9px;background:rgba(255,255,255,.5)}
+.course{position:relative;border-radius:10px;padding:2px 2px;cursor:pointer;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  box-shadow:0 3px 10px rgba(40,55,110,.16);
+  transition:transform .16s ease,box-shadow .16s ease}
+.course:active{transform:scale(.94);box-shadow:0 1px 4px rgba(40,55,110,.2)}
+.course::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,0) 55%)}
+.cname{position:relative;z-index:1;color:#fff;font-weight:700;line-height:1.14;letter-spacing:.2px;
+  text-shadow:0 1px 2px rgba(0,0,0,.16);word-break:break-all;font-size:10px}
+
+.hint{text-align:center;font-size:10.5px;color:#a2a9bb;padding:2px 0 4px}
+.hint b{color:#7b8399;font-weight:700}
+
+/* ============ 第 2 部分：今日课程 ============ */
+.screen2{height:100%;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 8px}
+.s2hd,.tabs{flex:0 0 auto}
+.s2hd{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 10px}
+.s2hd h2{font-size:16px;font-weight:800}
+.s2hd .cnt{font-size:10.5px;color:#8b93a7;font-weight:600}
+.tabs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:6px 13px;border-radius:999px;font-size:12px;font-weight:700;color:#7b8399;
+  background:#fff;box-shadow:0 2px 6px rgba(70,90,180,.09)}
+.tab.on{color:#fff;background:linear-gradient(135deg,#5c6bfa,#7048e8);box-shadow:0 4px 12px rgba(92,107,250,.35)}
+
+/* 按真实时间比例排布的一天时间轴 */
+.day{position:relative;flex:1 1 auto;min-height:430px;margin:2px 0 6px}
+.blk{position:absolute;left:0;right:0;border-radius:15px;padding:9px 11px 9px 12px;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;cursor:pointer;
+  border-left:4px solid var(--c);box-shadow:0 4px 14px rgba(60,80,160,.13);
+  transition:transform .16s ease}
+.blk:active{transform:scale(.985)}
+.blk .ls-time{font-size:10.5px;font-weight:800;color:#6b7488;letter-spacing:.2px}
+.blk .ls-time .ls-sec{font-size:9.5px;color:#a6adc0;font-weight:700;margin-left:5px}
+.blk .ls-name{font-size:14px;font-weight:800;margin-top:3px;line-height:1.28;color:var(--c)}
+.blk .ls-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.day.compact .blk{padding:7px 9px 7px 10px;border-radius:13px}
+.day.compact .blk .ls-name{font-size:12.5px;margin-top:2px}
+.day.compact .blk .ls-meta{margin-top:4px}
+
+/* 空档：午休 / 晚餐 / 空闲 */
+.gap{position:absolute;left:2px;right:2px;border-radius:12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+  border:1px dashed #d3daea;background:#eef2fb}
+.gap b{font-size:11px;font-weight:700;color:#98a1b5}
+.gap span{font-size:9.5px;color:#b3bacb;font-weight:600}
+
+/* 时间线 */
+.now{position:absolute;left:-2px;right:-2px;height:0;z-index:9;pointer-events:none;
+  border-top:1.6px dashed #e64980;display:none}
+.now.on{display:block}
+.now i{position:absolute;left:-4px;top:-5px;width:9px;height:9px;border-radius:50%;background:#e64980;
+  box-shadow:0 0 0 3px rgba(230,73,128,.22)}
+.now u{position:absolute;right:0;top:-8px;text-decoration:none;font-size:9.5px;font-weight:800;color:#fff;
+  background:#e64980;padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(230,73,128,.35)}
+
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#5b6478;
+  background:rgba(255,255,255,.85);border-radius:999px;padding:3px 8px}
+.pill svg{width:10px;height:10px;opacity:.6}
+.empty{text-align:center;color:#a6adc0;font-size:13px;padding:34px 0}
+.empty span{font-size:26px;display:block;margin-bottom:8px}
+
+/* ============ 底部弹出框 ============ */
+.mask{position:fixed;inset:0;background:rgba(20,26,45,.42);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .26s ease;z-index:40}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;transform:translateY(102%);
+  transition:transform .32s cubic-bezier(.22,.9,.3,1);
+  background:#fff;border-radius:24px 24px 0 0;overflow:hidden;
+  box-shadow:0 -8px 30px rgba(30,40,80,.22);padding-bottom:env(safe-area-inset-bottom)}
+.sheet.on{transform:translateY(0)}
+.grab{padding:9px 0 4px;display:flex;justify-content:center}
+.grab i{width:38px;height:4px;border-radius:4px;background:#dfe3ee;display:block}
+.sh-head{padding:12px 20px 16px;color:#fff;position:relative}
+.sh-head::before{content:"";position:absolute;inset:0;opacity:.14;
+  background:radial-gradient(circle at 88% 8%,#fff 0,transparent 60%)}
+.sh-name{position:relative;font-size:19px;font-weight:800;line-height:1.28;letter-spacing:.3px}
+.sh-sub{position:relative;font-size:11.5px;margin-top:6px;opacity:.92;font-weight:600}
+.sh-body{padding:14px 18px 20px;display:flex;flex-direction:column;gap:9px}
+.row{display:flex;align-items:center;gap:11px;background:#f5f7fc;border-radius:13px;padding:11px 13px}
+.ico{width:30px;height:30px;border-radius:9px;flex:0 0 30px;display:flex;align-items:center;justify-content:center}
+.ico svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.k{font-size:10.5px;color:#9aa2b5;font-weight:700}
+.v{font-size:14px;font-weight:700;color:#232a3d;margin-top:2px;line-height:1.35}
+.v em{font-style:normal;font-size:11px;color:#8b93a7;font-weight:600;margin-left:5px}
+.sh-close{margin:2px 18px 18px;padding:12px;text-align:center;border-radius:14px;background:#f1f3f9;
+  font-size:13px;font-weight:700;color:#6b7488}
+.sh-close:active{background:#e7eaf3}
+
+/* ============ 导入课表面板 ============ */
+.imp{position:fixed;inset:0;z-index:80;background:#eef2fb;transform:translateY(101%);
+  transition:transform .3s cubic-bezier(.22,.9,.3,1);display:flex;flex-direction:column}
+.imp.on{transform:translateY(0)}
+.imp-hd{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;background:#fff;
+  box-shadow:0 2px 10px rgba(60,80,160,.07)}
+.imp-hd b{font-size:17px;font-weight:800}
+.imp-close{font-size:13px;font-weight:700;color:#5c6bfa;background:#f1f3f9;
+  padding:7px 15px;border-radius:999px}
+.imp-body{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 40px}
+.imp-btn{display:block;width:100%;padding:14px;border:0;border-radius:14px;font:inherit;font-size:15px;
+  font-weight:700;color:#fff;background:linear-gradient(135deg,#5c6bfa,#7048e8);
+  box-shadow:0 4px 14px rgba(92,107,250,.35);cursor:pointer}
+.imp-btn:active{transform:scale(.98)}
+.imp-btn.ghost{background:#e6eaf3;color:#4a536b;box-shadow:none}
+.imp-btn.ok{background:linear-gradient(135deg,#38d9a9,#12b886);box-shadow:0 4px 14px rgba(18,184,134,.35)}
+.imp-prev{width:100%;border-radius:12px;margin-top:10px;display:none;border:1px solid #e3e8f2}
+.imp-prog{margin-top:11px;font-size:12.5px;color:#6b7488;line-height:1.45}
+.imp-bar{height:5px;border-radius:5px;background:#e2e7f1;margin-top:7px;overflow:hidden}
+.imp-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5c6bfa,#7048e8);transition:width .25s}
+/* 确认清单 */
+.item{border-radius:14px;padding:11px 12px;margin-top:9px;border:1.5px solid #e6eaf3;background:#fbfcfe}
+.item.span{border-color:#f59f00;background:#fffaf0}
+.item.warn{border-color:#e64980;background:#fff5f8}
+.item.off{opacity:.45}
+.ihead{display:flex;align-items:center;gap:8px}
+.chk{flex:0 0 20px;height:20px;border-radius:6px;border:1.5px solid #c8d0e0;background:#fff;position:relative}
+.chk.on{background:linear-gradient(135deg,#5c6bfa,#7048e8);border-color:transparent}
+.chk.on::after{content:"";position:absolute;left:6px;top:3px;width:5px;height:9px;border:solid #fff;
+  border-width:0 2px 2px 0;transform:rotate(42deg)}
+.iname{flex:1;font-size:14px;font-weight:800;line-height:1.3}
+.tag{font-size:10px;font-weight:800;padding:3px 7px;border-radius:999px;flex:0 0 auto}
+.tag.s{background:#fff3bf;color:#b45309}
+.tag.w{background:#ffe3ec;color:#c2255c}
+.imeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fld{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#5b6478;
+  background:#fff;border-radius:999px;padding:5px 10px;border:1px solid #e6eaf3}
+.fld input{border:0;background:transparent;font:inherit;font-weight:700;color:#232a3d;
+  width:46px;outline:0;padding:0;text-align:center}
+.fld.num input{width:56px;color:#c2255c}
+.fld.nm input{width:76px}
+.hintline{font-size:10.5px;color:#c2255c;margin-top:7px;font-weight:600}
+.imp-empty{text-align:center;color:#a6adc0;font-size:13px;padding:26px 0}
+/* 导入入口按钮 */
+.impe{width:34px;height:34px;flex:0 0 34px;border-radius:50%;border:0;cursor:pointer;
+  background:linear-gradient(135deg,#38d9a9,#12b886);color:#fff;font-size:17px;font-weight:800;
+  line-height:34px;text-align:center;box-shadow:0 3px 10px rgba(18,184,134,.4);padding:0;margin-left:8px}
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<div class="segbar">
+  <div class="seg">
+    <button id="btn1" class="on">本周总览</button>
+    <button id="btn2">今日课程</button>
+  </div>
+  <button class="impe" id="impOpen" title="导入课表">＋</button>
+</div>
+
+<section class="view on" id="v1">
+<div class="screen1">
+  <div class="hd">
+    <div>
+      <h1>本周课表</h1>
+      <div class="sub">第 5 周 · 点一下课程看教室和老师</div>
+    </div>
+    <div class="chip" id="chip"></div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="hint">点任意课程看<b>教室与老师</b></div>
+</div>
+</section>
+
+<section class="view" id="v2">
+<div class="screen2">
+  <div class="s2hd">
+    <h2>今日课程</h2>
+    <div class="cnt" id="cnt"></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="day" id="day"></div>
+  <div class="empty" id="empty" style="display:none"><span>🌤️</span>今天没有课，好好休息</div>
+</div>
+</section>
+</div>
+
+<div class="imp" id="imp">
+  <div class="imp-hd">
+    <b>导入课表</b>
+    <span class="imp-close" id="impClose">关闭</span>
+  </div>
+  <div class="imp-body">
+    <button class="imp-btn" id="impPick">从相册选择课表截图</button>
+    <input type="file" id="impFile" accept="image/*" style="display:none">
+    <img class="imp-prev" id="impPrev">
+    <div class="imp-prog" id="impProg"></div>
+    <div class="imp-bar"><i id="impBar"></i></div>
+    <button class="imp-btn ghost" id="impRetry" style="display:none;margin-top:10px">重试</button>
+    <div id="impList"></div>
+    <button class="imp-btn ok" id="impOk" style="display:none;margin-top:12px">确认并导入</button>
+  </div>
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"><i></i></div>
+  <div class="sh-head" id="shHead">
+    <div class="sh-name" id="shName"></div>
+    <div class="sh-sub" id="shSub"></div>
+  </div>
+  <div class="sh-body">
+    <div class="row"><div class="ico" id="i1" style="background:linear-gradient(135deg,#5c6bfa,#7048e8)"></div>
+      <div><div class="k">上课时间</div><div class="v" id="vTime"></div></div></div>
+    <div class="row"><div class="ico" id="i2" style="background:linear-gradient(135deg,#f783ac,#e64980)"></div>
+      <div><div class="k">教学楼</div><div class="v" id="vBld"></div></div></div>
+    <div class="row"><div class="ico" id="i3" style="background:linear-gradient(135deg,#4dabf7,#1c7ed6)"></div>
+      <div><div class="k">教室 / 场地</div><div class="v" id="vRoom"></div></div></div>
+    <div class="row"><div class="ico" id="i4" style="background:linear-gradient(135deg,#38d9a9,#12b886)"></div>
+      <div><div class="k">授课教师</div><div class="v" id="vTea"></div></div></div>
+  </div>
+  <div class="sh-close" id="shClose">收起</div>
+</div>
+
+<script>
+/* ---------- 基础数据 ---------- */
+const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+/* 每大节 = 两小节 ×45 分钟，小节之间 10 分钟，大节之间 20 分钟（作息表） */
+const PERIODS=[
+  {label:'1-2',start:'08:30',end:'10:10',sub:['08:30','09:15','09:25','10:10']},
+  {label:'3-4',start:'10:30',end:'12:10',sub:['10:30','11:15','11:25','12:10']},
+  {label:'5-6',start:'14:00',end:'15:40',sub:['14:00','14:45','14:55','15:40']},
+  {label:'7-8',start:'16:00',end:'17:40',sub:['16:00','16:45','16:55','17:40']},
+  {label:'9-10',start:'19:00',end:'20:40',sub:['19:00','19:45','19:55','20:40']}
+];
+/* 一天的起止：08:30 — 20:40 */
+const DAY0=8*60+30, DAY1=20*60+40, DAYLEN=DAY1-DAY0; // 510 / 1240 / 730 分钟
+/* 调取系统时间：时分、日期、星期几 */
+const NOW=new Date();
+const TODAY=NOW.getDay()===0?7:NOW.getDay();   // 1=周一 … 7=周日
+const MD=`${NOW.getMonth()+1}月${NOW.getDate()}日`;
+const hm2m=s=>{const [h,m]=s.split(':').map(Number);return h*60+m};
+const fmt=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const hex2rgba=(h,a)=>{const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
+const COLOR={
+  '人体解剖学':['#ff8787','#f03e3e'],
+  '思想道德与法治':['#b197fc','#7950f2'],
+  '生物化学':['#4dd4f7','#1098ad'],
+  '体育（一）':['#69db7c','#2f9e44'],
+  '习近平新时代中国特色社会主义思想概论':['#ff9a9e','#e03131'],
+  '大学英语（一）':['#74c0fc','#1c7ed6'],
+  '大学语文':['#ffd43b','#f08c00'],
+  '计算机基础':['#91a7ff','#4263eb'],
+  '组织胚胎学':['#63e6be','#0ca678']
+};
+const C=[
+  {d:1,s:0,e:0,n:'人体解剖学',b:'护理楼',r:'人体解剖学实验室 2',rm:'103',t:'洪永华'},
+  {d:1,s:3,e:3,n:'生物化学',b:'文荟楼',r:'—',rm:'201',t:'杨洁'},
+  {d:1,s:4,e:4,n:'习近平新时代中国特色社会主义思想概论',b:'文贤楼',r:'—',rm:'304',t:'段金亮'},
+  {d:2,s:2,e:2,n:'大学语文',b:'文贤楼',r:'—',rm:'105',t:'李林芳'},
+  {d:3,s:0,e:0,n:'思想道德与法治',b:'文贤楼',r:'—',rm:'305',t:'贾世钰'},
+  {d:3,s:1,e:1,n:'体育（一）',b:'南区羽毛球场',r:'1 号场',rm:'南区田径场小足球场旁',t:'齐航'},
+  {d:3,s:2,e:2,n:'大学英语（一）',b:'文静楼',r:'—',rm:'201',t:'王文婷'},
+  {d:3,s:3,e:3,n:'计算机基础',b:'文远楼',r:'公共机房 6',rm:'',t:'袁梦婷'},
+  {d:4,s:1,e:1,n:'习近平新时代中国特色社会主义思想概论',b:'文贤楼',r:'—',rm:'302',t:'段金亮'},
+  {d:4,s:2,e:2,n:'思想道德与法治',b:'文贤楼',r:'—',rm:'202',t:'贾世钰'},
+  {d:4,s:4,e:4,n:'计算机基础',b:'文远楼',r:'自主学习中心 1',rm:'102',t:'袁梦婷'},
+  {d:5,s:0,e:0,n:'生物化学',b:'文荟楼',r:'—',rm:'103',t:'杨洁'},
+  {d:5,s:1,e:1,n:'大学英语（一）',b:'文明楼',r:'语音室 7',rm:'201',t:'王文婷'},
+  {d:5,s:2,e:2,n:'大学语文',b:'文贤楼',r:'—',rm:'205',t:'李林芳'},
+  {d:5,s:4,e:4,n:'组织胚胎学',b:'文萃楼',r:'—',rm:'201',t:'王慧'}
+];
+/* 新课自动配色：识别导入的新课程也能有稳定颜色 */
+const EXTRA=[['#ffa94d','#e8590c'],['#f06595','#c2255c'],['#a9e34b','#5c940d'],
+  ['#4dabf7','#1971c2'],['#e599f7','#9c36b5'],['#ffd43b','#f08c00'],
+  ['#63e6be','#0ca678'],['#74c0fc','#1c7ed6'],['#ff8787','#e03131']];
+const _cm={};
+function colorOf(n){
+  if(COLOR[n])return COLOR[n];
+  if(_cm[n])return _cm[n];
+  let h=0;for(const ch of String(n))h=(h*31+ch.charCodeAt(0))>>>0;
+  _cm[n]=EXTRA[h%EXTRA.length];
+  return _cm[n];
+}
+const grad=n=>{const c=colorOf(n);return `linear-gradient(150deg,${c[0]},${c[1]})`};
+const ICON={
+  pin:'<path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/>',
+  room:'<path d="M4 20V6a2 2 0 0 1 2-2h6l8 8v8a2 2 0 0 1-2 2z"/><path d="M14 4v6h6"/>',
+  tea:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'
+};
+document.getElementById('i1').innerHTML='<svg viewBox="0 0 24 24">'+ICON.clock+'</svg>';
+document.getElementById('i2').innerHTML='<svg viewBox="0 0 24 24">'+ICON.pin+'</svg>';
+document.getElementById('i3').innerHTML='<svg viewBox="0 0 24 24">'+ICON.room+'</svg>';
+document.getElementById('i4').innerHTML='<svg viewBox="0 0 24 24">'+ICON.tea+'</svg>';
+
+/* ---------- 本地已保存的课表（导入过则自动恢复） ---------- */
+const SKEY='ck_timetable_v1';
+function applyCourses(list){
+  C.length=0;
+  list.forEach(o=>{
+    // 节次 → 行索引：1-2节→0, 3-4节→1, 5-6节→2, 7-8节→3, 9-10节→4（用 floor 避免 round(0.5)=1 偏移）
+    const s=Math.max(0,Math.min(4,Math.floor((o.period[0]-1)/2)));
+    const e=Math.max(s,Math.min(4,Math.floor((o.period[1]-1)/2)));
+    const isNum=/^\d{3}$/.test(o.room||'');
+    // 中文教室名若已含楼名前缀则去重（楼=南区羽毛球场、教室=南区羽毛球场1号场 → 1号场）
+    let rr=isNum?'':(o.room||'');
+    if(rr&&o.building&&rr.indexOf(o.building)===0&&rr!==o.building)rr=rr.slice(o.building.length);
+    C.push({d:o.day,s:s,e:e,n:o.name,
+      b:o.building||'', r:isNum?'':rr, rm:isNum?o.room:'', t:o.teacher||''});
+  });
+}
+try{
+  const _sv=localStorage.getItem(SKEY);
+  if(_sv){const _d=JSON.parse(_sv);if(_d&&_d.courses&&_d.courses.length)applyCourses(_d.courses);}
+}catch(e){}
+
+/* ---------- 第 1 部分：总览网格 ---------- */
+const board=document.getElementById('board');
+function drawBoard(){
+  let h='';
+  h+='<div class="th" style="grid-column:1;grid-row:1;background:transparent"></div>';
+  DAYS.forEach((d,i)=>{
+    const isT=(i+1===TODAY), isWk=(i>=5);
+    h+=`<div class="th ${isT?'today':''} ${isWk?'wk':''}" style="grid-column:${i+2};grid-row:1">${d}<small>${isT?'今天':(i+1)+'日'}</small></div>`;
+  });
+  PERIODS.forEach((p,ri)=>{
+    h+=`<div class="tcol" style="grid-column:1;grid-row:${ri+2}"><b>${p.label}</b><span>${p.start}</span></div>`;
+    for(let d=1;d<=7;d++) h+=`<div class="cell" style="grid-column:${d+1};grid-row:${ri+2}"></div>`;
+  });
+  C.forEach((c,i)=>{
+    const span=c.e-c.s+1;
+    h+=`<div class="course" data-i="${i}" style="grid-column:${c.d+1};grid-row:${c.s+2};grid-row-end:span ${span};background:${grad(c.n)}">
+      <div class="cname">${c.n}</div></div>`;
+  });
+  board.innerHTML=h;
+  const chip=document.getElementById('chip');
+  if(chip)chip.textContent='共 '+C.length+' 节';
+}
+drawBoard();
+
+/* 课程名自适应字号：让全名完整塞进格子 */
+function fitNames(){
+  document.querySelectorAll('.course').forEach(el=>{
+    const t=el.querySelector('.cname');let fs=11;
+    t.style.fontSize=fs+'px';
+    while(fs>6.2 && (t.scrollHeight>el.clientHeight-5 || t.scrollWidth>el.clientWidth-3)){
+      fs-=0.4;t.style.fontSize=fs+'px';
+    }
+  });
+}
+fitNames();
+window.addEventListener('resize',fitNames);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitNames);
+
+/* ---------- 底部弹出框 ---------- */
+const mask=document.getElementById('mask'),sheet=document.getElementById('sheet');
+function open(i){
+  const c=C[i];
+  document.getElementById('shName').textContent=c.n;
+  document.getElementById('shSub').textContent=`${DAYS[c.d-1]} · 第 ${PERIODS[c.s].label} 节`;
+  document.getElementById('shHead').style.background=grad(c.n);
+  document.getElementById('vTime').innerHTML=`${PERIODS[c.s].start} – ${PERIODS[c.e].end}<em>共 ${(c.e-c.s+1)*2} 小节</em>`;
+  document.getElementById('vBld').textContent=c.b;
+  document.getElementById('vRoom').innerHTML=(c.r&&c.r!=='—'?c.r+' ':'')+(c.rm?`<em>${c.rm}</em>`:'');
+  document.getElementById('vTea').textContent=c.t;
+  sheet.classList.add('on');mask.classList.add('on');
+}
+function close(){sheet.classList.remove('on');mask.classList.remove('on')}
+board.addEventListener('click',e=>{
+  const el=e.target.closest('.course');if(!el)return;
+  open(+el.dataset.i);
+});
+mask.addEventListener('click',close);
+document.getElementById('shClose').addEventListener('click',close);
+let sy=0;
+sheet.addEventListener('touchstart',e=>sy=e.touches[0].clientY,{passive:true});
+sheet.addEventListener('touchmove',e=>{
+  const dy=e.touches[0].clientY-sy;
+  if(dy>0)sheet.style.transform='translateY('+dy+'px)';
+},{passive:true});
+sheet.addEventListener('touchend',e=>{
+  const dy=e.changedTouches[0].clientY-sy;
+  sheet.style.transform='';
+  if(dy>70)close();
+});
+
+/* ---------- 第 2 部分：今日课程（按真实时间比例排布） ---------- */
+const tabs=document.getElementById('tabs'),dayEl=document.getElementById('day'),
+      emptyEl=document.getElementById('empty');
+let cur=TODAY;
+DAYS.forEach((d,i)=>{
+  const b=document.createElement('div');
+  b.className='tab'+(i+1===cur?' on':'');b.textContent=d;b.dataset.d=i+1;
+  b.onclick=()=>{cur=i+1;render();document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',+x.dataset.d===cur));};
+  tabs.appendChild(b);
+});
+/* 空档：午休 12:10–14:00、晚餐 17:40–19:00，其余为空闲 */
+const BREAKS=[
+  {s:hm2m('12:10'),e:hm2m('14:00'),t:'午休'},
+  {s:hm2m('17:40'),e:hm2m('19:00'),t:'晚餐'}
+];
+function gapHTML(a,b){
+  const pts=[a];
+  BREAKS.forEach(w=>{if(w.s>a&&w.s<b)pts.push(w.s);if(w.e>a&&w.e<b)pts.push(w.e)});
+  pts.push(b);
+  const pct=m=>(m-DAY0)/DAYLEN*100;
+  let out='';
+  for(let i=0;i<pts.length-1;i++){
+    const s=pts[i],e=pts[i+1];
+    if(e-s<40)continue;                       // 太短的碎片不画
+    const w=BREAKS.find(x=>s>=x.s&&e<=x.e);
+    out+=`<div class="gap" style="top:${pct(s)}%;height:${pct(e)-pct(s)}%">
+      <b>${w?w.t:'空闲'}</b><span>${fmt(s)} – ${fmt(e)}</span></div>`;
+  }
+  return out;
+}
+function render(){
+  const list=C.filter(c=>c.d===cur).sort((a,b)=>a.s-b.s);
+  const cntEl=document.getElementById('cnt');
+  const dd=new Date(NOW);dd.setDate(dd.getDate()-(TODAY-cur));
+  cntEl.textContent=`${DAYS[cur-1]} ${dd.getMonth()+1}/${dd.getDate()}${cur===TODAY?' · 今天':''} · ${list.length} 节课`;
+  if(!list.length){
+    dayEl.style.display='none';dayEl.innerHTML='';emptyEl.style.display='';
+    return;
+  }
+  emptyEl.style.display='none';dayEl.style.display='';
+  const blocks=list.map(c=>({c,s:hm2m(PERIODS[c.s].start),e:hm2m(PERIODS[c.e].end)}));
+  const pct=m=>(m-DAY0)/DAYLEN*100;
+  let html='';
+  let prev=DAY0;
+  blocks.forEach(b=>{html+=gapHTML(prev,b.s);prev=b.e});
+  html+=gapHTML(prev,DAY1);
+  blocks.forEach(b=>{
+    const c=b.c,col=(COLOR[c.n]||['#adb5bd','#868e96'])[1],
+          light=(COLOR[c.n]||['#adb5bd','#868e96'])[0];
+    const place=(c.r&&c.r!=='—'?c.r+' · ':'')+(c.rm||'');
+    html+=`<div class="blk" data-n="${c.n}" style="--c:${col};top:${pct(b.s)}%;height:${pct(b.e)-pct(b.s)}%;
+      background:linear-gradient(135deg,${hex2rgba(light,.30)},${hex2rgba(light,.10)})">
+      <div class="ls-time">${fmt(b.s)} – ${fmt(b.e)}<span class="ls-sec">第 ${PERIODS[c.s].label} 节</span></div>
+      <div class="ls-name">${c.n}</div>
+      <div class="ls-meta">
+        <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${ICON.pin}</svg>${c.b}${place?' · '+place:''}</span>
+        <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${ICON.tea}</svg>${c.t}</span>
+      </div></div>`;
+  });
+  html+=`<div class="now" id="now"><i></i><u></u></div>`;
+  dayEl.innerHTML=html;
+  dayEl.classList.toggle('compact',dayEl.clientHeight<620);
+  dayEl.querySelectorAll('.blk').forEach(el=>{
+    el.onclick=()=>{const i=C.findIndex(c=>c.d===cur&&c.n===el.dataset.n);open(i)};
+  });
+  updateNow();
+}
+/* 时间线：按当前时间在课程表中自上而下移动 */
+function updateNow(){
+  const el=document.getElementById('now');
+  dayEl.classList.toggle('compact',dayEl.clientHeight<620);
+  if(!el)return;
+  const m=nowMin();
+  if(cur!==TODAY||m<DAY0||m>DAY1){el.classList.remove('on');return}
+  el.classList.add('on');
+  el.style.top=((m-DAY0)/DAYLEN*100)+'%';
+  el.querySelector('u').textContent=fmt(m);
+}
+render();
+setInterval(updateNow,15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateNow()});
+window.addEventListener('resize',()=>{dayEl.classList.toggle('compact',dayEl.clientHeight<620)});
+
+/* ---------- 顶部按钮切换两个视图 ---------- */
+const v1=document.getElementById('v1'),v2=document.getElementById('v2');
+const b1=document.getElementById('btn1'),b2=document.getElementById('btn2');
+function switchTo(n){
+  v1.classList.toggle('on',n===1);v2.classList.toggle('on',n===2);
+  b1.classList.toggle('on',n===1);b2.classList.toggle('on',n===2);
+  if(n===1)requestAnimationFrame(fitNames);
+  else{v2.querySelector('.screen2').scrollTop=0;requestAnimationFrame(updateNow);}
+}
+b1.onclick=()=>switchTo(1);
+b2.onclick=()=>switchTo(2);
+
+/* ============================================================
+ * 课表截图识别（内嵌）—— 识别后直接写入本周课表
+ * ============================================================ */
+/* ============================================================
+ * 课表截图识别引擎 —— 核心逻辑
+ * 设计原则：
+ *   汉字  → 允许模糊匹配，归并到字典
+ *   数字  → 四道防线，绝不猜测
+ * ============================================================ */
+(function (global) {
+'use strict';
+
+/* ---------- 1. 图像工具 ---------- */
+
+// RGBA -> 灰度
+function toGray(data, w, h) {
+  const g = new Uint8Array(w * h);
+  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+    g[j] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+  }
+  return g;
+}
+
+// 积分图
+function integral(g, w, h) {
+  const I = new Float64Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let rowSum = 0;
+    const off = y * w, ioff = (y + 1) * (w + 1) + 1;
+    for (let x = 0; x < w; x++) {
+      rowSum += g[off + x];
+      I[ioff + x] = I[ioff - (w + 1) + x] + rowSum;
+    }
+  }
+  return I;
+}
+
+// 自适应阈值（box mean，近似 OpenCV ADAPTIVE_THRESH_GAUSSIAN_C）
+function adaptiveBin(g, w, h, block, C) {
+  const I = integral(g, w, h);
+  const half = block >> 1;
+  const W1 = w + 1;
+  const out = new Uint8Array(w * h); // 1 = 前景(暗)
+  for (let y = 0; y < h; y++) {
+    const ya = Math.max(0, y - half), yb = Math.min(h - 1, y + half);
+    const rowA = ya * W1, rowB = (yb + 1) * W1;   // 上边界行、下边界+1 行
+    for (let x = 0; x < w; x++) {
+      const xa = Math.max(0, x - half), xb = Math.min(w - 1, x + half);
+      // sum = I[yb+1][xb+1] - I[ya][xb+1] - I[yb+1][xa] + I[ya][xa]
+      const s = I[rowB + xb + 1] - I[rowA + xb + 1] - I[rowB + xa] + I[rowA + xa];
+      const mean = s / ((yb - ya + 1) * (xb - xa + 1));
+      out[y * w + x] = g[y * w + x] < mean - C ? 1 : 0;
+    }
+  }
+  return out;
+}
+
+// 游程检测：返回 {start, len}，只保留细线（表格线很窄），过滤色块
+function runs(idx, thr, maxLen) {
+  const all = []; let run = null;
+  for (let i = 0; i <= idx.length; i++) {
+    const v = i < idx.length ? idx[i] : 0;
+    if (v > thr) { if (run === null) run = i; }
+    else {
+      if (run !== null) all.push({ start: run, len: i - run });
+      run = null;
+    }
+  }
+  return maxLen ? all.filter(r => r.len <= maxLen) : all;
+}
+
+/* ---------- 2. 网格检测 ---------- */
+// 返回 { rows:[y...], cols:[x...] } —— 表格线坐标
+function detectGrid(g, w, h) {
+  const bin = adaptiveBin(g, w, h, 31, 10);
+  // 注意：bin 是 0/1，不是 0/255，阈值按比例换算
+  const rowCount = new Float64Array(h);
+  const colCount = new Float64Array(w);
+  for (let y = 0; y < h; y++) {
+    let s = 0;
+    for (let x = 0; x < w; x++) s += bin[y * w + x];
+    rowCount[y] = s;
+  }
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let y = 0; y < h; y++) s += bin[y * w + x];
+    colCount[x] = s;
+  }
+  return {
+    rows: runs(rowCount, w * 0.7, 10).map(r => r.start),
+    cols: runs(colCount, h * 0.5, 10).map(r => r.start)
+  };
+}
+
+/* ---------- 3. 切格 ---------- */
+// rows: 全部横线；取 >250 的作为数据区，第1条为表头，其后 5 条为 5 个节次行
+function sliceCells(g, w, h, rows, cols) {
+  const dataRows = rows.filter(y => y > 250);
+  const cells = [];
+  for (let ri = 1; ri <= 5; ri++) {
+    if (ri + 1 >= dataRows.length) break;
+    const y0 = dataRows[ri] + 3, y1 = dataRows[ri + 1] - 3;
+    for (let ci = 0; ci < cols.length - 1; ci++) {
+      const x0 = cols[ci] + 3, x1 = cols[ci + 1] - 3;
+      if (x1 - x0 < 20 || y1 - y0 < 20) continue;
+      cells.push({ row: ri - 1, col: ci, x0, y0, x1, y1 });
+    }
+  }
+  return cells;
+}
+
+// 格子是否空白（前景像素占比）
+function inkRatio(g, w, cell, C) {
+  let ink = 0, tot = 0;
+  for (let y = cell.y0; y < cell.y1; y += 2) {
+    for (let x = cell.x0; x < cell.x1; x += 2) {
+      tot++;
+      if (g[y * w + x] < C) ink++;
+    }
+  }
+  return tot ? ink / tot : 0;
+}
+
+/* ---------- 4. 文本行切分（用于数字区域定位） ---------- */
+function splitLines(g, w, cell) {
+  const cw = cell.x1 - cell.x0, ch = cell.y1 - cell.y0;
+  const prof = new Float64Array(ch);
+  for (let y = cell.y0; y < cell.y1; y++) {
+    let s = 0;
+    for (let x = cell.x0; x < cell.x1; x++) if (g[y * w + x] < 150) s++;
+    prof[y - cell.y0] = s;
+  }
+  const thr = Math.max(2, cw * 0.02);
+  const segs = []; let run = null;
+  for (let i = 0; i < ch; i++) {
+    if (prof[i] > thr) { if (run === null) run = i; }
+    else { if (run !== null && i - run >= 8) segs.push([run, i]); run = null; }
+  }
+  if (run !== null && ch - run >= 8) segs.push([run, ch]);
+  const merged = [];
+  for (const s of segs) {
+    if (merged.length && s[0] - merged[merged.length - 1][1] < 4)
+      merged[merged.length - 1][1] = s[1];
+    else merged.push([s[0], s[1]]);
+  }
+  return merged.map(([a, b]) => ({ x0: cell.x0, y0: cell.y0 + a, x1: cell.x1, y1: cell.y0 + b }));
+}
+
+/* ---------- 5. 数字字形聚类（同图内复用，减少识别次数） ---------- */
+function normGlyph(g, w, box, H) {
+  const bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+  if (bw < 2 || bh < 2) return null;
+  const nw = Math.max(2, Math.round(bw * H / bh));
+  const out = new Float32Array(H * nw);
+  for (let j = 0; j < H; j++) {
+    const sy = box.y0 + Math.floor((j + 0.5) * bh / H);
+    for (let i = 0; i < nw; i++) {
+      const sx = box.x0 + Math.floor((i + 0.5) * bw / nw);
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = sy + dy, xx = sx + dx;
+        if (yy >= 0 && yy < arguments[4] || true) { s += 255 - g[yy * w + xx]; n++; }
+      }
+      out[j * nw + i] = s / n;
+    }
+  }
+  // 归一化
+  let mean = 0; for (let i = 0; i < out.length; i++) mean += out[i];
+  mean /= out.length;
+  let sd = 0; for (let i = 0; i < out.length; i++) sd += (out[i] - mean) ** 2;
+  sd = Math.sqrt(sd / out.length) + 1e-6;
+  for (let i = 0; i < out.length; i++) out[i] = (out[i] - mean) / sd;
+  return { v: out, w: nw, h: H };
+}
+
+function glyphDist(a, b) {
+  if (a.w !== b.w || a.h !== b.h) {
+    const H = Math.max(a.h, b.h), W = Math.max(a.w, b.w);
+    return resampleDist(a, b, W, H);
+  }
+  let s = 0;
+  for (let i = 0; i < a.v.length; i++) s += (a.v[i] - b.v[i]) ** 2;
+  return s / a.v.length;
+}
+function sampleAt(glyph, fx, fy) {
+  const x = Math.min(glyph.w - 1, Math.floor(fx * glyph.w));
+  const y = Math.min(glyph.h - 1, Math.floor(fy * glyph.h));
+  return glyph.v[y * glyph.w + x];
+}
+function resampleDist(a, b, W, H) {
+  let s = 0, n = 0;
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const fx = (i + 0.5) / W, fy = (j + 0.5) / H;
+    const va = sampleAt(a, fx, fy), vb = sampleAt(b, fx, fy);
+    s += (va - vb) ** 2; n++;
+  }
+  return s / n;
+}
+
+// 数字字符切分（按列投影找字符间隙）
+function splitChars(g, w, box) {
+  const bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+  const prof = new Float64Array(bw);
+  for (let x = box.x0; x < box.x1; x++) {
+    let s = 0;
+    for (let y = box.y0; y < box.y1; y++) if (g[y * w + x] < 150) s++;
+    prof[x - box.x0] = s;
+  }
+  const out = []; let run = null;
+  for (let i = 0; i < bw; i++) {
+    if (prof[i] > 0) { if (run === null) run = i; }
+    else { if (run !== null && i - run >= 3) out.push([box.x0 + run, box.x0 + i]); run = null; }
+  }
+  if (run !== null) out.push([box.x0 + run, box.x1]);
+  // 粘连兜底：太宽的段按等分切开
+  const res = [];
+  for (const [a, b] of out) {
+    const wd = b - a;
+    const unitH = bh;
+    if (wd > unitH * 1.6 && wd > 12) {
+      const n = Math.round(wd / (unitH * 0.75));
+      for (let k = 0; k < n; k++) res.push([a + Math.floor(wd * k / n), a + Math.floor(wd * (k + 1) / n)]);
+    } else res.push([a, b]);
+  }
+  return res.map(([a, b]) => ({ x0: a, y0: box.y0, x1: b, y1: box.y1 }));
+}
+
+/* ---------- 6. 导出 ---------- */
+global.CKEngine = {
+  toGray, integral, adaptiveBin, runs, detectGrid,
+  sliceCells, inkRatio, splitLines,
+  normGlyph, glyphDist, splitChars
+};
+})(window);
+/* ===== 字典：由第 5–16 周共 12 张截图统计生成 ===== */
+(function(w){
+const COURSES=['人体解剖学','思想道德与法治','生物化学','体育(一)','习近平新时代中国特色社会主义思想概论',
+  '大学英语(一)','大学语文','计算机基础','组织胚胎学','形势与政策(一)'];
+/* 课程名 OCR 变体 → 正名 */
+const COURSE_FIX={
+  '习近平新时代中国特色社会概论':'习近平新时代中国特色社会主义思想概论',
+  '体育(一)':'体育(一)','体育〈一)':'体育(一)','形势与政策(一)':'形势与政策(一)'
+};
+/* 教师 OCR 变体 → 正名 */
+const TEACHER_FIX={
+  '贾世犹':'贾世钰','页世钰':'贾世钰','责世钰':'贾世钰','贾世稣':'贾世钰',
+  '段金高':'段金亮',
+  '圳梦婷':'袁梦婷','膏梦婷':'袁梦婷','衷梦婷':'袁梦婷',
+  '这林芳':'李林芳','张媚':'张娟'
+};
+const TEACHERS=['王文婷','洪永华','段金亮','贾世钰','齐航','李林芳','袁梦婷','杨洁',
+  '张娟','杨琪格','赵贝','王学密','张桓','王星月','王慧'];
+/* 楼名 OCR 变体 → 正名（汉字字形归并，用户已认可） */
+const BUILD_FIX={'文蕉楼':'文荟楼','文苓楼':'文荟楼','文蔡楼':'文荟楼','文茶楼':'文荟楼','文荟棰':'文荟楼',
+  '文贰楼':'文致楼','文臻楼':'文致楼','文至楼':'文致楼','文致棰':'文致楼'};
+const BUILDINGS=['文贤楼','文荟楼','文萃楼','文致楼','文远楼','文英楼','文良楼','文静楼',
+  '文雅楼','文明楼','护理楼','南区羽毛球场'];
+/* 已知完整地点串 */
+const PLACES=['文贤楼305','文贤楼302','文贤楼202','文贤楼105','文贤楼205','文贤楼203','文贤楼308',
+  '文荟楼201','文荟楼103','文萃楼201','文良楼304','文良楼108','文致楼206','文致楼302',
+  '文英楼102','文静楼201','文雅楼318',
+  '语音室7(文明楼201)','语音室9(文明楼203)','公共机房6(文远楼)','自主学习中心1(文远楼102)',
+  '人体解剖学实验室2(护理楼103)','生物化学实验室(护理楼201)','形态学实验室2(护理楼206)',
+  '南区羽毛球场1号场(南区田径场小足球场旁)','思政课实践场所4'];
+/* 已知房间号（用于数字校验） */
+const ROOMS=['103','105','108','201','202','203','205','206','302','304','305','308','318','102'];
+/* 行号 → 起始节次（100% 可靠，不依赖 OCR） */
+const ROW_START=[1,3,5,7,9];
+
+/* ===== 编辑距离 ===== */
+function edit(a,b){
+  const m=a.length,n=b.length;
+  let prev=[...Array(n+1).keys()];
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++)
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+/* 在字典中找最相近项，超过容差返回 null */
+function nearest(x,list,tol){
+  if(!x)return null;
+  if(list.includes(x))return{x,hit:true,d:0};
+  let best=null,bd=1e9;
+  for(const c of list){
+    const d=edit(x,c);
+    const t=typeof tol==='function'?tol(c):tol;
+    if(d<bd){bd=d;best=c;}
+  }
+  if(best!==null&&bd<=tol)return{x:best,hit:false,d:bd};
+  return null;
+}
+/* ===== 模糊定位：在整段文本中直接搜字典项（不依赖括号结构） ===== */
+/* OCR 常把 [ 认成 ] ( | 等，甚至吞掉右括号；靠括号切分很脆弱，
+   因此在文本里做「近似子串匹配」：允许 1~2 个字被认错仍能命中 */
+function findInDict(text,list,maxDist){
+  let best=null;
+  for(const w of list){
+    const L=w.length;
+    if(!L)continue;
+    for(let i=0;i+L<=text.length;i++){
+      const sub=text.substr(i,L);
+      // 快速剪枝：首字相同才细算
+      if(sub[0]!==w[0]&&sub[L-1]!==w[L-1])continue;
+      const d=edit(sub,w);
+      if(d<=maxDist&&(!best||d<best.d))best={d:d,val:w,pos:i};
+      if(best&&best.d===0)return best;
+    }
+  }
+  return best;
+}
+/* 课程名在开头：用字典做「前缀近似匹配」，取最长命中 */
+function matchPrefix(s,list,maxDist){
+  let best=null;
+  for(const c of list){
+    const L=Math.min(c.length,s.length);
+    if(L<2)continue;
+    const d=edit(s.slice(0,L),c.slice(0,L));
+    if(d<=maxDist&&(!best||L>best.len))best={len:L,val:c,d:d};
+  }
+  return best;
+}
+/* ===== 归一：全角括号、异体括号 ===== */
+function norm(s){
+  return (s||'').replace(/［/g,'[').replace(/］/g,']').replace(/｛/g,'(').replace(/｝/g,')')
+    .replace(/〈/g,'(').replace(/〉/g,')').replace(/（/g,'(').replace(/）/g,')')
+    .replace(/【/g,'[').replace(/】/g,']').replace(/\s+/g,'');
+}
+/* ===== 解析一格 ===== */
+function parseCell(raw,rowIdx){
+  const t=norm(raw);
+  const res={raw:t,ok:false,warn:[],flags:[]};
+  /* 分段：只按方括号类切分，且不再要求右括号存在（OCR 常吞掉右括号）。
+     注意：不能切圆括号 —— 地点如「语音室7(文明楼201)」内部就含圆括号，切开会毁掉地点 */
+  const parts=t.split(/[\[\]【】〔〕｜|]/).map(x=>x.trim()).filter(x=>x.length);
+  let name=parts[0]||'';
+  const segs=parts.slice(1);
+  // 分类
+  let weeks=null,period=null,place=null,teacher=null;
+  for(const s of segs){
+    if(/周/.test(s)&&!/节/.test(s))weeks=s;
+    else if(/节/.test(s))period=s;
+    else if(/楼|室|场|中心|场所/.test(s))place=s;
+    else if(s.length>=2&&s.length<=4&&/^[一-龥]+$/.test(s)&&!/楼|室|场|中心|所|馆|区|房/.test(s))teacher=s;
+  }
+  // 兜底1：从后往前找纯汉字人名段，跳过周次/节次/地点类
+  if(!teacher){
+    for(let i=segs.length-1;i>=0;i--){
+      const s=segs[i];
+      if(/周|节/.test(s))continue;
+      if(/^[一-龥]{2,4}$/.test(s)&&!/楼|室|场|中心|所|馆|区|房/.test(s)){teacher=s;break;}
+    }
+  }
+  /* 兜底2：右括号被吞时最后一段会贴着前一段，上面取不到 ——
+     直接在文本尾部用教师字典做近似匹配（如 "洪永多" → "洪永华"） */
+  if(!teacher){
+    const tail=t.slice(-24);
+    const fm=findInDict(tail,TEACHERS,1);
+    if(fm)teacher=fm.val;
+  }
+  if(!place&&segs.length>=2)place=segs[segs.length-2];
+  if(!place){
+    const pm=findInDict(t,PLACES,2);
+    if(pm)place=pm.val;
+  }
+  /* 课程名：用字典做前缀近似匹配。
+     第一个 [ 被 OCR 吞掉时（如 "人体解剖学3-4周,7-8周…"）仍能切出正确课程名 */
+  let nm=name.replace(/[0-9]+$/,'').replace(/周.*$/,'');
+  if(COURSE_FIX[nm])nm=COURSE_FIX[nm];
+  /* 课程名匹配：严格优先 —— 精确命中 > 全串最近距离 > 逐字截尾兜底。
+     绝不做「前 N 字相似就匹配」，否则 大学语文 会被误判成 大学英语(一)。 */
+  let cn=null;
+  if(COURSES.includes(nm))cn={x:nm,hit:true};
+  else{
+    const n1=nearest(nm,COURSES,3);
+    if(n1)cn=n1;
+    else{
+      // OCR 常在课程名尾部混入噪声（如「织胚胎学dh2peWe」），逐字截尾再试
+      for(let k=1;k<=5&&!cn;k++){
+        const s2=nm.slice(0,nm.length-k);
+        if(s2.length<2)break;
+        if(COURSES.includes(s2))cn={x:s2,hit:false};
+        else{const n2=nearest(s2,COURSES,2);if(n2)cn=n2;}
+      }
+    }
+  }
+  if(cn){res.name=cn.x;if(!cn.hit)res.flags.push('课程名已校正');}
+  else {res.name=nm||'';res.flags.push('未知课程');}
+  /* --- 节次：以行号为准 --- */
+  const rs=ROW_START[rowIdx];
+  res.rowStart=rs;
+  let pStart=null,pEnd=null;
+  const pm=/(\d+)\s*[-—~]\s*(\d+)\s*节/.exec(period||'');
+  const pm1=/(\d+)\s*节/.exec(period||'');
+  if(pm){pStart=+pm[1];pEnd=+pm[2];}
+  else if(pm1){pStart=+pm1[1];pEnd=+pm1[1];}
+  res.ocrPeriod=period||'';
+  if(pStart===null){
+    res.pStart=rs;res.pEnd=rs+1;res.flags.push('节次缺失，已按行号补');
+  }else{
+    if(pStart!==rs){res.flags.push('节次与行号冲突(行='+rs+',OCR='+pStart+')，已取行号');}
+    res.pStart=rs;
+    res.pEnd=pEnd!==null?pEnd:rs+1;
+    if(res.pEnd<rs+1)res.pEnd=rs+1;
+  }
+  // 跨行课：占 2 个大节以上 → 必须高亮确认
+  res.span=(res.pEnd-res.pStart+1)/2;
+  if(res.span>1)res.flags.push('跨'+res.span+'个大节');
+  /* --- 地点 --- */
+  if(place){
+    let p=place;
+    for(const k in BUILD_FIX)if(p.includes(k))p=p.replace(k,BUILD_FIX[k]);
+    const pn=nearest(p,PLACES,4);
+    if(pn&&pn.hit){res.place=pn.x;res.placeRaw=place;}
+    else{
+      /* 数字优先纠错：房间号 3 位数字必须完全一致，再要求整体距离<=2。
+         例：文葵楼201 → 文荟楼201（数字 201 一致，仅一字之差），
+         避免误纠到文贤楼这类同样一字之差但数字不符的项。 */
+      const rmn=/\d{3}/.exec(p);
+      let best=null;
+      if(rmn){for(const q of PLACES){
+        if(new RegExp(rmn[0]).test(q)===false)continue;
+        const d=edit(p,q);
+        if(d<=2&&(!best||d<best.d))best={d:d,x:q};
+      }}
+      if(best){res.place=best.x;res.placeRaw=place;
+        res.flags.push('地点已校正('+p+'→'+best.x+')');}
+      else{res.place=p;res.placeRaw=place;res.flags.push('地点不在已知列表');}
+    }
+    // 拆 building / room
+    const inner=/\(([^)]*)\)/.exec(res.place);
+    const bare=res.place.replace(/\([^)]*\)/g,'');
+    let bl=null,rm=null;
+    for(const b of BUILDINGS){
+      if(res.place.includes(b)){bl=b;break;}
+    }
+    /* 教室名解析：
+       地点串结构为「场地名(楼名+房间号)」或「楼名+房间号」
+       1) 优先取 3 位房间号（103 / 305 …）
+       2) 没有房间号时，场地名本身就是教室 —— 如 公共机房6(文远楼) → 教室「公共机房6」
+          这一步修复了计算机基础、体育等课教室为空的问题 */
+    const rn=/\d{3}/.exec(inner?inner[1]:bare)||/\d{3}/.exec(bare);
+    if(rn)rm=rn[0];
+    else if(bare&&bare!==bl)rm=bare;
+    res.building=bl||'';res.room=rm||'';
+    if(rm&&/\d{3}/.test(rm)&&!ROOMS.includes(rm))res.flags.push('房间号'+rm+'为新值，请核对');
+    if(!rm)res.flags.push('教室信息缺失');
+  }else{res.place='';res.building='';res.room='';res.flags.push('地点缺失');}
+  /* --- 教师 --- */
+  if(teacher){
+    let tc=teacher.replace(/[^\u4e00-\u9fa5]/g,'');
+    if(TEACHER_FIX[tc])tc=TEACHER_FIX[tc];
+    const tn=nearest(tc,TEACHERS,2);
+    if(tn&&tn.hit){res.teacher=tn.x;res.teacherRaw=teacher;}
+    else if(tn){res.teacher=tn.x;res.teacherRaw=teacher;res.flags.push('教师名已校正');}
+    else{res.teacher=tc;res.teacherRaw=teacher;res.flags.push('未知教师');}
+  }else{res.teacher='';res.flags.push('教师缺失');}
+  res.periodLabel=res.pStart+'-'+res.pEnd+'节';
+  res.ok=res.name&&res.place&&res.teacher;
+  res.needReview=res.flags.some(f=>/跨|新值|冲突|未知|缺失|不在/.test(f));
+  return res;
+}
+w.CKDict={COURSES,COURSE_FIX,TEACHERS,TEACHER_FIX,BUILDINGS,BUILD_FIX,PLACES,ROOMS,ROW_START,
+  edit,nearest,norm,parseCell};
+})(window);
+
+/* ---------- 资源加载：离线包 → 多 CDN 自动切换 ---------- */
+const CDN_LIST=[
+ {name:'jsDelivr',
+  lib:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',
+  core:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/',
+  lang:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0_best_int/'},
+ {name:'unpkg',
+  lib:'https://unpkg.com/tesseract.js@5.1.1/dist/',
+  core:'https://unpkg.com/tesseract.js-core@5.1.1/',
+  lang:'https://unpkg.com/@tesseract.js-data/chi_sim@1.0.0/4.0.0_best_int/'}
+];
+const RES={lib:'./lib/',core:'./core/',lang:'./lang/',fromCDN:false};
+function loadScript(src,ms){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    const t=setTimeout(()=>{s.onload=s.onerror=null;s.remove();rej(new Error('加载超时'))},ms||20000);
+    s.src=src;
+    s.onload=()=>{clearTimeout(t);res();};
+    s.onerror=()=>{clearTimeout(t);s.remove();rej(new Error('网络无法访问'))};
+    document.head.appendChild(s);
+  });
+}
+function useCDN(c){RES.lib=c.lib;RES.core=c.core;RES.lang=c.lang;RES.fromCDN=true;}
+async function ensureEngine(){
+  if(window.Tesseract)return;
+  if(location.protocol!=='file:'){
+    try{
+      const r=await fetch(RES.lib+'tesseract.min.js',{method:'HEAD'});
+      if(r.ok){await loadScript(RES.lib+'tesseract.min.js',8000);
+        if(window.Tesseract)return;}
+    }catch(e){}
+  }
+  const fails=[];
+  for(const c of CDN_LIST){
+    try{
+      iprog('正在连接 '+c.name+' …',8);
+      await loadScript(c.lib+'tesseract.min.js');
+      if(!window.Tesseract)throw new Error('脚本未生效');
+      useCDN(c);return;
+    }catch(e){fails.push(c.name+'('+(e.message||'失败')+')');}
+  }
+  throw new Error('识别引擎加载失败：'+fails.join('；')+'。首次使用需联网下载约 6MB 组件，建议连 Wi-Fi 后点「重试」。');
+}
+
+/* ---------- 导入面板 ---------- */
+const impEl=document.getElementById('imp');
+const G=id=>document.getElementById(id);
+let ITEMS=[],CANVAS=null,GRAY=null,GW=0,GH=0,WORKER=null,WARMED=false;
+
+function iprog(t,p){G('impProg').textContent=t||'';G('impBar').style.width=(p||0)+'%';}
+
+G('impOpen').onclick=()=>{
+  impEl.classList.add('on');
+  iprog('准备识别引擎…',5);
+  if(!WARMED){WARMED=true;warmup();}
+  else iprog('可以选图了 ✓',100);
+};
+G('impClose').onclick=()=>impEl.classList.remove('on');
+G('impPick').onclick=()=>G('impFile').click();
+G('impFile').onchange=e=>{const f=e.target.files[0];if(f)readImg(f);};
+
+async function warmup(){
+  try{ await getWorker(); iprog('引擎已就绪，可以选图了 ✓',100); }
+  catch(e){ iprog('预加载未完成（选图时会自动重试）：'+((e&&e.message)||e),0);
+            G('impRetry').style.display=''; }
+}
+async function getWorker(){
+  if(WORKER)return WORKER;
+  await ensureEngine();
+  iprog('首次使用需下载识别组件（约 6MB，建议 Wi-Fi）…',22);
+  WORKER=await Tesseract.createWorker('chi_sim',1,{
+    workerPath:RES.lib+'worker.min.js', langPath:RES.lang, corePath:RES.core,
+    cacheMethod:'write',
+    logger:m=>{ if(m.status==='loading tesseract core')iprog('加载识别核心…',35);
+                if(m.status==='initializing tesseract')iprog('初始化引擎…',50);
+                if(m.status==='loading language traineddata')iprog('加载中文模型…',62);
+                if(m.status==='initializing api')iprog('准备就绪…',72); }
+  });
+  await WORKER.setParameters({tessedit_pageseg_mode:'6'});
+  return WORKER;
+}
+G('impRetry').onclick=()=>{G('impRetry').style.display='none';ITEMS=[];if(CANVAS)run();else warmup();};
+
+function readImg(f){
+  const url=URL.createObjectURL(f);
+  const pv=G('impPrev');pv.src=url;pv.style.display='block';
+  const img=new Image();
+  img.onload=()=>{
+    const MAX=3000,sc=Math.min(1,MAX/Math.max(img.width,img.height));
+    CANVAS=document.createElement('canvas');
+    CANVAS.width=Math.round(img.width*sc);CANVAS.height=Math.round(img.height*sc);
+    CANVAS.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,CANVAS.width,CANVAS.height);
+    run();
+  };
+  img.src=url;
+}
+
+/* ---------- 多变体择优识别 ----------
+   单个格子里文字小、贴边、背景杂时，一次识别容易全错。
+   这里生成若干预处理变体（加白边 / 归一化到最佳字号 / 二值化），
+   逐个识别并按「解析质量」打分，取最好的那个。
+   质量分 = OCR置信度 - 各字段缺失惩罚，因此是「认得对」而不是「认得多」。 */
+function makeVariants(src){
+  const out=[];
+  const pad=c=>{ // 加白边：tesseract 对紧贴边缘的文字识别明显变差
+    const p=Math.round(Math.min(c.width,c.height)*0.12)+4;
+    const o=document.createElement('canvas');
+    o.width=c.width+p*2;o.height=c.height+p*2;
+    const x=o.getContext('2d');
+    x.fillStyle='#fff';x.fillRect(0,0,o.width,o.height);
+    x.drawImage(c,p,p);
+    return o;
+  };
+  const scale=(c,f)=>{
+    const o=document.createElement('canvas');
+    o.width=Math.max(1,Math.round(c.width*f));o.height=Math.max(1,Math.round(c.height*f));
+    const x=o.getContext('2d');x.imageSmoothingQuality='high';
+    x.drawImage(c,0,0,o.width,o.height);
+    return o;
+  };
+  const binarize=c=>{ // 拉到纯黑白，去掉背景噪点
+    const o=document.createElement('canvas');o.width=c.width;o.height=c.height;
+    const x=o.getContext('2d',{willReadFrequently:true});
+    x.drawImage(c,0,0);
+    const d=x.getImageData(0,0,c.width,c.height);
+    for(let i=0;i<d.data.length;i+=4){
+      const g=(d.data[i]*299+d.data[i+1]*587+d.data[i+2]*114)/1000;
+      const v=g<150?0:255;
+      d.data[i]=d.data[i+1]=d.data[i+2]=v;
+    }
+    x.putImageData(d,0,0);
+    return o;
+  };
+  // 归一化到约 80px 字高：太小认不清，太大也会掉精度
+  const targetH=80;
+  const f=Math.max(1,Math.min(3,targetH/Math.max(1,src.height)));
+  out.push(src);                              // 0 原样
+  out.push(pad(src));                         // 1 白边
+  out.push(scale(pad(src),Math.max(f,1.5)));  // 2 白边 + 放大
+  out.push(scale(pad(binarize(src)),Math.max(f,1.5))); // 3 白边 + 二值 + 放大
+  return out;
+}
+function quality(p,conf){
+  let q=conf||0;
+  const f=(p.flags||[]).join();
+  if(/未知课程/.test(f))q-=1;
+  if(/教师缺失|未知教师/.test(f))q-=0.45;
+  if(/地点缺失|地点不在已知列表/.test(f))q-=0.45;
+  if(/节次缺失/.test(f))q-=0.25;
+  if(/教室信息缺失/.test(f))q-=0.2;
+  return q;
+}
+async function ocrBest(worker,src,rowIdx){
+  const vs=makeVariants(src);
+  let best=null;
+  for(let i=0;i<vs.length;i++){
+    let r;
+    try{r=await worker.recognize(vs[i]);}catch(e){continue;}
+    const txt=(r.data.text||'').replace(/\s+/g,'');
+    if(!txt||txt.length<2)continue;
+    const conf=Math.round(r.data.confidence)/100;
+    const p=CKDict.parseCell(txt,rowIdx);
+    const q=quality(p,conf);
+    if(!best||q>best.q)best={q:q,txt:txt,conf:conf,p:p};
+    // 已经足够好就别再试了，省时间
+    if(best&&best.q>=0.6&&!/未知|缺失|不在/.test((p.flags||[]).join()))break;
+  }
+  return best;
+}
+/* 整块识别质量仍不达标时，再试逐行识别，取更优者 */
+async function ocrBestFull(worker,src,cell,rowIdx){
+  const best=await ocrBest(worker,src,rowIdx);
+  const need=!best||best.q<0.6||/未知|缺失|不在/.test((best.p.flags||[]).join());
+  if(!need)return best;
+  const bl=await ocrLines(worker,cell,rowIdx);
+  if(!bl)return best;
+  if(!best||bl.q>best.q)return bl;
+  return best;
+}
+
+/* 逐行识别兜底：整块多行文字挤在一起时（尤其被压缩的小字格子），
+   整块识别容易串行成一团。切成单行、各自归一化放大后用 PSM 7 识别，
+   再拼回完整文本 —— 对密集小字格子提升明显。 */
+async function ocrLines(worker,cell,rowIdx){
+  const lines=CKEngine.splitLines(GRAY,GW,cell);
+  if(!lines.length)return null;
+  let txt='',sum=0,cnt=0;
+  try{
+    await worker.setParameters({tessedit_pageseg_mode:'7'});
+    for(const ln of lines){
+      const w=ln.x1-ln.x0,h=ln.y1-ln.y0;
+      if(h<6||w<6)continue;
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(CANVAS,ln.x0,ln.y0,w,h,0,0,w,h);
+      // 归一化到约 46px 行高
+      const f=Math.max(1,Math.min(6,46/Math.max(1,h)));
+      const o=document.createElement('canvas');
+      o.width=Math.round(w*f);o.height=Math.round(h*f);
+      const ox=o.getContext('2d');ox.imageSmoothingQuality='high';
+      ox.drawImage(c,0,0,o.width,o.height);
+      const padv=Math.round(Math.min(o.width,o.height)*0.12)+4;
+      const pc=document.createElement('canvas');
+      pc.width=o.width+padv*2;pc.height=o.height+padv*2;
+      const px=pc.getContext('2d');
+      px.fillStyle='#fff';px.fillRect(0,0,pc.width,pc.height);
+      px.drawImage(o,padv,padv);
+      const r=await worker.recognize(pc);
+      txt+=(r.data.text||'').replace(/\s+/g,'');
+      sum+=Math.round(r.data.confidence)/100;cnt++;
+    }
+  }finally{
+    try{await worker.setParameters({tessedit_pageseg_mode:'6'});}catch(e){}
+  }
+  if(!txt||txt.length<4)return null;
+  const conf=cnt?sum/cnt:0.6;
+  const p=CKDict.parseCell(txt,rowIdx);
+  return {q:quality(p,conf),txt:txt,conf:conf,p:p};
+}
+
+async function run(){
+  try{
+    await ensureEngine();
+    iprog('定位表格…',12);
+    const d=CANVAS.getContext('2d').getImageData(0,0,CANVAS.width,CANVAS.height);
+    GRAY=CKEngine.toGray(d.data,CANVAS.width,CANVAS.height);
+    GW=CANVAS.width;GH=CANVAS.height;
+    const grid=CKEngine.detectGrid(GRAY,GW,GH);
+    if(grid.rows.length<7||grid.cols.length<9)
+      throw new Error('未能定位表格线，请换一张完整截图（需含星期表头与节次列）');
+    const cells=CKEngine.sliceCells(GRAY,GW,GH,grid.rows,grid.cols);
+    const work=cells.filter(c=>c.col>=1&&CKEngine.inkRatio(GRAY,GW,c,150)>=0.02);
+    if(!work.length)throw new Error('未检测到有课内容的格子');
+    const worker=await getWorker();
+    iprog('正在识别 '+work.length+' 个课程格…',75);
+    ITEMS=[];
+    for(let i=0;i<work.length;i++){
+      const c=work[i];
+      const w=c.x1-c.x0,h=c.y1-c.y0;
+      const cc=document.createElement('canvas');cc.width=w;cc.height=h;
+      cc.getContext('2d').drawImage(CANVAS,c.x0,c.y0,w,h,0,0,w,h);
+      const best=await ocrBestFull(worker,cc,c,c.row);
+      if(!best||!best.txt||best.txt.length<4)continue;
+      const p=best.p;
+      p.day=c.col;p.conf=best.conf;p.id=ITEMS.length;
+      ITEMS.push(p);
+      iprog('识别中 '+(i+1)+'/'+work.length,75+Math.round(20*(i+1)/work.length));
+    }
+    iprog('识别完成，共 '+ITEMS.length+' 节课',100);
+    renderList();
+  }catch(e){
+    iprog('出错：'+((e&&e.message)||String(e)),0);
+    G('impRetry').style.display='';
+  }
+}
+
+const DAYN=['','周一','周二','周三','周四','周五','周六','周日'];
+function renderList(){
+  const need=ITEMS.filter(i=>i.needReview).length,span=ITEMS.filter(i=>i.span>1).length;
+  G('impList').innerHTML=
+    '<div style="font-size:13px;font-weight:700;color:#6b7488;margin:14px 2px 2px">确认清单 · 共 '
+    +ITEMS.length+' 节 · 待核对 '+need+' · 跨节 '+span+'</div>'+
+    (ITEMS.length?ITEMS.map(it=>{
+      const cls=['item'];
+      if(it.span>1)cls.push('span');else if(it.needReview)cls.push('warn');
+      const tags=[];
+      if(it.span>1)tags.push('<span class="tag s">跨'+it.span+'个大节</span>');
+      if(it.needReview)tags.push('<span class="tag w">需核对</span>');
+      const hints=it.flags.filter(f=>/跨|新值|冲突|未知|缺失|不在|校正/.test(f));
+      return `<div class="${cls.join(' ')}" data-id="${it.id}">
+        <div class="ihead">
+          <div class="chk on" data-act="chk"></div>
+          <div class="iname">${it.name}</div>${tags.join('')}
+        </div>
+        <div class="imeta">
+          <span class="fld">${DAYN[it.day]} <input data-f="pStart" value="${it.pStart}">-<input data-f="pEnd" value="${it.pEnd}"> 节</span>
+          <span class="fld nm">楼 <input data-f="building" value="${it.building}"></span>
+          <span class="fld num">教室 <input data-f="room" value="${it.room}"></span>
+          <span class="fld nm">师 <input data-f="teacher" value="${it.teacher}"></span>
+        </div>
+        ${hints.length?'<div class="hintline">⚠ '+hints.join('；')+'</div>':''}
+      </div>`;}).join(''):'<div class="imp-empty">没有识别到课程</div>');
+  G('impOk').style.display=ITEMS.length?'':'none';
+  G('impList').querySelectorAll('.chk').forEach(el=>{
+    el.onclick=()=>{el.classList.toggle('on');
+      el.closest('.item').classList.toggle('off',!el.classList.contains('on'));};
+  });
+  G('impList').querySelectorAll('input').forEach(inp=>{
+    inp.oninput=()=>{const it=ITEMS[+inp.closest('.item').dataset.id];
+      if(it)it[inp.dataset.f]=inp.value;};
+  });
+}
+
+/* ---------- 确认导入：写入课表 ---------- */
+G('impOk').onclick=()=>{
+  const picked=ITEMS.filter((it,i)=>{
+    const el=G('impList').querySelector('.item[data-id="'+i+'"] .chk');
+    return !el||el.classList.contains('on');
+  });
+  const list=picked.map(it=>({day:it.day,period:[+it.pStart,+it.pEnd],
+    name:it.name,building:it.building,room:it.room,teacher:it.teacher}));
+  applyCourses(list);
+  try{localStorage.setItem(SKEY,JSON.stringify({version:1,courses:list}));}catch(e){}
+  drawBoard();fitNames();cur=TODAY;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',+x.dataset.d===cur));
+  render();
+  impEl.classList.remove('on');
+  switchTo(1);
+  requestAnimationFrame(fitNames);
+};
+
+</script>
+</body>
+</html>
